@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "ThinDesk - Microserviço de Chamados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "usuarioId", "value": "usuario-maria" },
+    { "key": "tecnicoId", "value": "tecnico-joao" },
+    { "key": "chamadoId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Abrir chamado",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('201 Created', () => pm.response.to.have.status(201));",
+          "const c = pm.response.json();",
+          "pm.test('status ABERTO', () => pm.expect(c.status).to.eql('ABERTO'));",
+          "pm.collectionVariables.set('chamadoId', c.id);"
+        ]}
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Usuario-Id", "value": "{{usuarioId}}" }
+        ],
+        "url": "{{baseUrl}}/api/chamados",
+        "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Computador não liga\",\n  \"descricao\": \"O computador da recepção não liga desde hoje cedo.\"\n}" }
+      }
+    },
+    {
+      "name": "2. Listar chamados do usuário",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/chamados/usuario/{{usuarioId}}"
+      }
+    },
+    {
+      "name": "3. Consultar chamado",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/chamados/{{chamadoId}}"
+      }
+    },
+    {
+      "name": "4. Resolver chamado",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('200 OK', () => pm.response.to.have.status(200));",
+          "pm.test('status RESOLVIDO', () => pm.expect(pm.response.json().status).to.eql('RESOLVIDO'));"
+        ]}
+      }],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Usuario-Id", "value": "{{tecnicoId}}" }
+        ],
+        "url": "{{baseUrl}}/api/chamados/{{chamadoId}}/resolver",
+        "body": { "mode": "raw", "raw": "{\n  \"solucao\": \"Fonte de alimentação substituída e equipamento testado.\"\n}" }
+      }
+    },
+    {
+      "name": "5. Regra: resolver de novo (espera 409)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Usuario-Id", "value": "{{tecnicoId}}" }
+        ],
+        "url": "{{baseUrl}}/api/chamados/{{chamadoId}}/resolver",
+        "body": { "mode": "raw", "raw": "{\n  \"solucao\": \"Tentando alterar a solução de novo.\"\n}" }
+      }
+    },
+    {
+      "name": "6. Validação: campos inválidos (espera 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Usuario-Id", "value": "{{usuarioId}}" }
+        ],
+        "url": "{{baseUrl}}/api/chamados",
+        "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"\",\n  \"descricao\": \"curta\"\n}" }
+      }
+    },
+    {
+      "name": "7. Sem usuário autenticado (espera 401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/chamados",
+        "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Sem usuário\",\n  \"descricao\": \"Requisição sem o cabeçalho X-Usuario-Id\"\n}" }
+      }
+    },
+    {
+      "name": "8. Chamado inexistente (espera 404)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/chamados/000000000000000000000000"
+      }
+    }
+  ]
+}
